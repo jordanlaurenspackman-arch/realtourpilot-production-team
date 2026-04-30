@@ -1,0 +1,34 @@
+display_information:
+  name: Realtour Pilot
+  description: Production job management for Realtour Pilot
+  background_color: "#1a1a2e"
+features:
+  bot_user:
+    display_name: Realtour Pilot
+    always_online: true
+  slash_commands:
+    - command: /job-done
+      url: https://realtourpilot-production-team.fly.dev/slack/commands/job-done
+      description: Mark a job as complete and send it to QC
+      usage_hint: "<job_id> [optional notes]"
+      should_escape: false
+    - command: /job-status
+      url: https://realtourpilot-production-team.fly.dev/slack/commands/job-status
+      description: Check the status of a job
+      usage_hint: "<job_id>"
+      should_escape: false
+    - command: /my-jobs
+      url: https://realtourpilot-production-team.fly.dev/slack/commands/my-jobs
+      description: List all your open jobs
+      should_escape: false
+oauth_config:
+  scopes:
+    bot:
+      - chat:write
+      - chat:write.public
+      - im:write
+      - commands
+settings:
+  org_deploy_enabled: false
+  socket_mode_enabled: false
+  token_rotation_enabled: false
