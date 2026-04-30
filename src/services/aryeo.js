@@ -58,4 +58,15 @@ async function getOrder(aryeoOrderId) {
   return response.data;
 }
 
-module.exports = { verifyWebhookSignature, parseOrderPayload, triggerDelivery, getOrder };
+async function listOrders(page = 1) {
+  const apiKey = process.env.ARYEO_API_KEY;
+  if (!apiKey) throw new Error('ARYEO_API_KEY is not configured');
+
+  const response = await axios.get(`${BASE_URL}/orders`, {
+    headers: { Authorization: `Bearer ${apiKey}` },
+    params: { page, per_page: 50, sort: '-created_at' },
+  });
+  return response.data;
+}
+
+module.exports = { verifyWebhookSignature, parseOrderPayload, triggerDelivery, getOrder, listOrders };

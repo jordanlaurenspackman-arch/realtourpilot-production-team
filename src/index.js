@@ -21,6 +21,12 @@ app.use(express.urlencoded({ extended: true }));
 app.use('/slack/commands', slackCommandsRouter);
 app.use('/api', apiRouter);
 
+app.post('/api/poll', async (req, res) => {
+  const { pollAryeoOrders } = require('./services/scheduler');
+  try { await pollAryeoOrders(); res.json({ success: true }); }
+  catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 app.post('/api/reports/morning', async (req, res) => {
   const { sendMorningDigest } = require('./services/reports');
   try { await sendMorningDigest(); res.json({ sent: true }); }
