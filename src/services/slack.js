@@ -9,21 +9,27 @@ function initSlack() {
     endpoints: '/slack/events',
   });
 
-  slackApp = new App({
-    token: process.env.SLACK_BOT_TOKEN,
-    receiver,
-  });
+  if (!process.env.SLACK_BOT_TOKEN) {
+    console.warn('[slack] SLACK_BOT_TOKEN not set — Slack notifications disabled');
+    return { slackApp: null, receiver };
+  }
+
+  try {
+    slackApp = new App({ token: process.env.SLACK_BOT_TOKEN, receiver });
+  } catch (err) {
+    console.error('[slack] Failed to initialize Slack app:', err.message);
+  }
 
   return { slackApp, receiver };
 }
 
 function getApp() {
-  if (!slackApp) throw new Error('Slack not initialized');
-  return slackApp;
+  return slackApp || null;
 }
 
 async function notifyEditorAssigned(job, editor) {
   const app = getApp();
+  if (!app) return;
   const channel = editor.slack_user_id
     ? `@${editor.slack_user_id}`
     : process.env.SLACK_JOBS_CHANNEL || '#jobs';
@@ -59,6 +65,7 @@ async function notifyEditorAssigned(job, editor) {
 
 async function notifyQcReady(job, editor) {
   const app = getApp();
+  if (!app) return;
   const channel = process.env.SLACK_QC_CHANNEL || '#qc-review';
   const appUrl = process.env.APP_URL || 'http://localhost:3000';
 
@@ -96,6 +103,7 @@ async function notifyQcReady(job, editor) {
 
 async function notifyDelivered(job) {
   const app = getApp();
+  if (!app) return;
   const channel = process.env.SLACK_QC_CHANNEL || '#qc-review';
 
   await app.client.chat.postMessage({
@@ -115,6 +123,7 @@ async function notifyDelivered(job) {
 
 async function notifyRejected(job, editor, reason) {
   const app = getApp();
+  if (!app) return;
   const channel = editor?.slack_user_id ? `@${editor.slack_user_id}` : process.env.SLACK_JOBS_CHANNEL || '#jobs';
 
   await app.client.chat.postMessage({
@@ -149,6 +158,7 @@ async function notifyRejected(job, editor, reason) {
 
 async function postMessage(channel, text, blocks) {
   const app = getApp();
+  if (!app) return;
   return app.client.chat.postMessage({ channel, text, blocks });
 }
 
