@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Realtour Pilot — QC Dashboard</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #f0f2f5;
+      color: #1a1a2e;
+      min-height: 100vh;
+    }
+
+    header {
+      background: #1a1a2e;
+      color: #fff;
+      padding: 16px 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    header h1 { font-size: 1.25rem; font-weight: 700; letter-spacing: -.5px; }
+    header .sub { font-size: .8rem; opacity: .6; margin-top: 2px; }
+
+    .stats-bar {
+      display: flex;
+      gap: 12px;
+      padding: 20px 32px;
+      flex-wrap: wrap;
+    }
+
+    .stat {
+      background: #fff;
+      border-radius: 10px;
+      padding: 14px 20px;
+      flex: 1;
+      min-width: 120px;
+      box-shadow: 0 1px 4px rgba(0,0,0,.08);
+    }
+
+    .stat .label { font-size: .7rem; text-transform: uppercase; letter-spacing: .08em; color: #777; }
+    .stat .value { font-size: 1.8rem; font-weight: 700; margin-top: 4px; }
+
+    .stat.new .value      { color: #6c757d; }
+    .stat.assigned .value { color: #0d6efd; }
+    .stat.completed .value{ color: #fd7e14; }
+    .stat.delivered .value{ color: #198754; }
+
+    main { padding: 0 32px 40px; }
+
+    .section-title {
+      font-size: 1rem;
+      font-weight: 700;
+      margin: 24px 0 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .section-title .badge {
+      background: #fd7e14;
+      color: #fff;
+      border-radius: 12px;
+      font-size: .7rem;
+      padding: 2px 8px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: #fff;
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 1px 4px rgba(0,0,0,.08);
+    }
+
+    thead { background: #f8f9fa; }
+    th { text-align: left; padding: 10px 16px; font-size: .75rem; text-transform: uppercase; letter-spacing: .06em; color: #888; border-bottom: 1px solid #e9ecef; }
+    td { padding: 12px 16px; font-size: .875rem; border-bottom: 1px solid #f0f2f5; vertical-align: middle; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: #fafbff; }
+
+    .status-pill {
+      display: inline-block;
+      padding: 2px 10px;
+      border-radius: 20px;
+      font-size: .72rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+    }
+
+    .pill-new       { background: #e9ecef; color: #495057; }
+    .pill-assigned  { background: #cfe2ff; color: #0a58ca; }
+    .pill-completed { background: #ffe5cc; color: #c56000; }
+    .pill-approved  { background: #d1e7dd; color: #0a6640; }
+    .pill-delivered { background: #d1e7dd; color: #0a6640; }
+    .pill-rejected  { background: #f8d7da; color: #842029; }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 6px 14px;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+      font-size: .8rem;
+      font-weight: 600;
+      transition: opacity .15s;
+    }
+    .btn:hover { opacity: .85; }
+    .btn:disabled { opacity: .4; cursor: not-allowed; }
+
+    .btn-approve { background: #198754; color: #fff; }
+    .btn-reject  { background: #fff; color: #dc3545; border: 1px solid #dc3545; margin-left: 6px; }
+
+    .address   { font-weight: 600; }
+    .sub-text  { font-size: .75rem; color: #888; margin-top: 2px; }
+
+    .empty { text-align: center; padding: 48px; color: #aaa; font-size: .9rem; }
+
+    .modal-overlay {
+      display: none;
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,.45);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: #fff;
+      border-radius: 12px;
+      padding: 28px;
+      width: 420px;
+      max-width: 95vw;
+      box-shadow: 0 8px 32px rgba(0,0,0,.2);
+    }
+    .modal h2 { font-size: 1rem; margin-bottom: 16px; }
+    .modal textarea {
+      width: 100%;
+      border: 1px solid #dee2e6;
+      border-radius: 6px;
+      padding: 10px;
+      font-size: .875rem;
+      min-height: 80px;
+      resize: vertical;
+    }
+    .modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
+    .btn-cancel { background: #f8f9fa; color: #333; border: 1px solid #dee2e6; }
+    .btn-send   { background: #dc3545; color: #fff; }
+
+    @media (max-width: 700px) {
+      header, .stats-bar, main { padding-left: 16px; padding-right: 16px; }
+      .stat { min-width: 90px; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div>
+    <div class="h1">Realtour Pilot</div>
+    <div class="sub">QC &amp; Production Dashboard</div>
+  </div>
+  <div style="font-size:.8rem;opacity:.5;" id="last-refresh"></div>
+</header>
+
+<div class="stats-bar" id="stats-bar"></div>
+
+<main>
+  <div class="section-title">
+    Pending QC Review <span class="badge" id="qc-count">0</span>
+  </div>
+  <table>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Property / Client</th>
+        <th>Service</th>
+        <th>Editor</th>
+        <th>Completed</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody id="qc-tbody"></tbody>
+  </table>
+
+  <div class="section-title" style="margin-top:32px;">
+    All Active Jobs
+  </div>
+  <table>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Property / Client</th>
+        <th>Service</th>
+        <th>Editor</th>
+        <th>Status</th>
+        <th>Updated</th>
+      </tr>
+    </thead>
+    <tbody id="all-tbody"></tbody>
+  </table>
+</main>
+
+<!-- Reject modal -->
+<div class="modal-overlay" id="reject-modal">
+  <div class="modal">
+    <h2>Request Revisions — Job <span id="reject-job-id"></span></h2>
+    <textarea id="reject-reason" placeholder="Describe what needs to be fixed…"></textarea>
+    <div class="modal-actions">
+      <button class="btn btn-cancel" onclick="closeRejectModal()">Cancel</button>
+      <button class="btn btn-send" onclick="submitReject()">Send Back</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  let rejectTargetId = null;
+
+  function fmtDate(iso) {
+    if (!iso) return '—';
+    return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+  }
+
+  function pillClass(status) {
+    return 'status-pill pill-' + (status || 'new');
+  }
+
+  async function load() {
+    const [stats, qcJobs, allJobs] = await Promise.all([
+      fetch('/api/stats').then(r => r.json()),
+      fetch('/api/jobs?status=completed').then(r => r.json()),
+      fetch('/api/jobs').then(r => r.json()),
+    ]);
+
+    // Stats bar
+    const statDefs = [
+      { key: 'new',       label: 'New' },
+      { key: 'assigned',  label: 'Assigned' },
+      { key: 'completed', label: 'QC Queue' },
+      { key: 'delivered', label: 'Delivered' },
+      { key: 'delivered_today', label: 'Today' },
+    ];
+    document.getElementById('stats-bar').innerHTML = statDefs.map(s =>
+      `<div class="stat ${s.key}">
+        <div class="label">${s.label}</div>
+        <div class="value">${stats[s.key] ?? 0}</div>
+      </div>`
+    ).join('');
+
+    // QC queue
+    document.getElementById('qc-count').textContent = qcJobs.length;
+    const qcTbody = document.getElementById('qc-tbody');
+    if (!qcJobs.length) {
+      qcTbody.innerHTML = `<tr><td colspan="6" class="empty">No jobs pending review 🎉</td></tr>`;
+    } else {
+      qcTbody.innerHTML = qcJobs.map(j => `
+        <tr>
+          <td>#${j.id}</td>
+          <td>
+            <div class="address">${j.property_address || '—'}</div>
+            <div class="sub-text">${j.client_name || ''}</div>
+          </td>
+          <td>${j.service_type || '—'}</td>
+          <td>${j.editor_name || '—'}</td>
+          <td>${fmtDate(j.completed_at)}</td>
+          <td>
+            <button class="btn btn-approve" onclick="approve(${j.id}, this)">✓ Approve &amp; Deliver</button>
+            <button class="btn btn-reject" onclick="openRejectModal(${j.id})">↩ Revise</button>
+          </td>
+        </tr>`).join('');
+    }
+
+    // All jobs (exclude delivered to keep it manageable)
+    const active = allJobs.filter(j => j.status !== 'delivered');
+    const allTbody = document.getElementById('all-tbody');
+    if (!active.length) {
+      allTbody.innerHTML = `<tr><td colspan="6" class="empty">No active jobs</td></tr>`;
+    } else {
+      allTbody.innerHTML = active.map(j => `
+        <tr>
+          <td>#${j.id}</td>
+          <td>
+            <div class="address">${j.property_address || '—'}</div>
+            <div class="sub-text">${j.client_name || ''}</div>
+          </td>
+          <td>${j.service_type || '—'}</td>
+          <td>${j.editor_name || 'Unassigned'}</td>
+          <td><span class="${pillClass(j.status)}">${j.status}</span></td>
+          <td>${fmtDate(j.updated_at)}</td>
+        </tr>`).join('');
+    }
+
+    document.getElementById('last-refresh').textContent = 'Updated ' + new Date().toLocaleTimeString();
+  }
+
+  async function approve(id, btn) {
+    btn.disabled = true;
+    btn.textContent = 'Delivering…';
+    try {
+      const r = await fetch(`/api/jobs/${id}/approve`, { method: 'POST' });
+      const data = await r.json();
+      if (!r.ok) {
+        alert('Error: ' + (data.error || 'Unknown'));
+        btn.disabled = false;
+        btn.textContent = '✓ Approve & Deliver';
+        return;
+      }
+      load();
+    } catch (e) {
+      alert('Network error');
+      btn.disabled = false;
+      btn.textContent = '✓ Approve & Deliver';
+    }
+  }
+
+  function openRejectModal(id) {
+    rejectTargetId = id;
+    document.getElementById('reject-job-id').textContent = '#' + id;
+    document.getElementById('reject-reason').value = '';
+    document.getElementById('reject-modal').classList.add('open');
+  }
+
+  function closeRejectModal() {
+    document.getElementById('reject-modal').classList.remove('open');
+    rejectTargetId = null;
+  }
+
+  async function submitReject() {
+    const reason = document.getElementById('reject-reason').value.trim();
+    const r = await fetch(`/api/jobs/${rejectTargetId}/reject`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ reason }),
+    });
+    if (r.ok) { closeRejectModal(); load(); }
+    else alert('Error sending revision request');
+  }
+
+  // Auto-refresh every 60 seconds
+  load();
+  setInterval(load, 60_000);
+</script>
+</body>
+</html>

@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Realtour Pilot — Morning Digest</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #f0f2f5;
+      color: #1a1a2e;
+      min-height: 100vh;
+    }
+
+    header {
+      background: linear-gradient(135deg, #1a1a2e, #16213e);
+      color: #fff;
+      padding: 28px 32px 24px;
+    }
+
+    .date-line { font-size: .85rem; opacity: .5; margin-bottom: 6px; }
+    header h1 { font-size: 1.6rem; font-weight: 800; }
+    header .tagline { font-size: .9rem; opacity: .6; margin-top: 4px; }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 12px;
+      padding: 24px 32px;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 12px;
+      padding: 18px 20px;
+      box-shadow: 0 1px 4px rgba(0,0,0,.08);
+    }
+
+    .card .label { font-size: .7rem; text-transform: uppercase; letter-spacing: .08em; color: #888; }
+    .card .value { font-size: 2rem; font-weight: 800; margin-top: 6px; }
+    .card .value.green  { color: #198754; }
+    .card .value.orange { color: #fd7e14; }
+    .card .value.blue   { color: #0d6efd; }
+    .card .value.red    { color: #dc3545; }
+    .card .value.gray   { color: #6c757d; }
+
+    section { padding: 0 32px 32px; }
+
+    .section-head {
+      font-size: .95rem;
+      font-weight: 700;
+      margin: 8px 0 12px;
+      padding-bottom: 8px;
+      border-bottom: 2px solid #e9ecef;
+    }
+
+    .job-list { display: flex; flex-direction: column; gap: 8px; }
+
+    .job-row {
+      background: #fff;
+      border-radius: 8px;
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      box-shadow: 0 1px 3px rgba(0,0,0,.06);
+    }
+
+    .job-id { font-size: .75rem; color: #aaa; min-width: 36px; }
+    .job-body { flex: 1; }
+    .job-addr { font-weight: 600; font-size: .875rem; }
+    .job-meta { font-size: .75rem; color: #888; margin-top: 2px; }
+
+    .pill {
+      display: inline-block;
+      padding: 2px 10px;
+      border-radius: 20px;
+      font-size: .7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+    }
+    .pill-completed { background: #ffe5cc; color: #c56000; }
+    .pill-assigned  { background: #cfe2ff; color: #0a58ca; }
+    .pill-new       { background: #e9ecef; color: #495057; }
+
+    .empty-state { text-align: center; padding: 32px; color: #bbb; font-size: .875rem; }
+
+    .link-bar {
+      padding: 0 32px 32px;
+      display: flex;
+      gap: 12px;
+    }
+    .link-btn {
+      display: inline-block;
+      padding: 10px 20px;
+      background: #1a1a2e;
+      color: #fff;
+      border-radius: 8px;
+      text-decoration: none;
+      font-size: .85rem;
+      font-weight: 600;
+    }
+    .link-btn:hover { background: #16213e; }
+
+    @media (max-width: 600px) {
+      .stats-grid, section, .link-bar { padding-left: 16px; padding-right: 16px; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="date-line" id="date-line"></div>
+  <h1>Good morning ☀️</h1>
+  <div class="tagline">Here's where things stand at Realtour Pilot</div>
+</header>
+
+<div class="stats-grid" id="stats-grid"></div>
+
+<section>
+  <div class="section-head">🟠 Jobs Pending QC Review</div>
+  <div class="job-list" id="qc-list"></div>
+</section>
+
+<section>
+  <div class="section-head">🔵 Jobs In Progress (Assigned)</div>
+  <div class="job-list" id="assigned-list"></div>
+</section>
+
+<section>
+  <div class="section-head">⬜ Unassigned Jobs</div>
+  <div class="job-list" id="new-list"></div>
+</section>
+
+<div class="link-bar">
+  <a href="/dashboard" class="link-btn">Open QC Dashboard →</a>
+</div>
+
+<script>
+  document.getElementById('date-line').textContent = new Date().toLocaleDateString('en-US', {
+    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+  });
+
+  function fmtDate(iso) {
+    if (!iso) return '';
+    return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  }
+
+  function jobRow(j) {
+    const statusMap = { completed: 'pill-completed', assigned: 'pill-assigned', new: 'pill-new' };
+    return `<div class="job-row">
+      <div class="job-id">#${j.id}</div>
+      <div class="job-body">
+        <div class="job-addr">${j.property_address || j.client_name || 'Untitled'}</div>
+        <div class="job-meta">${j.service_type || ''} ${j.editor_name ? '· ' + j.editor_name : ''} ${j.scheduled_at ? '· ' + fmtDate(j.scheduled_at) : ''}</div>
+      </div>
+      <span class="pill ${statusMap[j.status] || ''}">${j.status}</span>
+    </div>`;
+  }
+
+  async function load() {
+    const [stats, allJobs] = await Promise.all([
+      fetch('/api/stats').then(r => r.json()),
+      fetch('/api/jobs').then(r => r.json()),
+    ]);
+
+    const statDefs = [
+      { key: 'new',           label: 'Unassigned',    cls: 'gray'   },
+      { key: 'assigned',      label: 'In Progress',   cls: 'blue'   },
+      { key: 'completed',     label: 'QC Queue',      cls: 'orange' },
+      { key: 'delivered_today', label: 'Delivered Today', cls: 'green' },
+      { key: 'delivered',     label: 'All-Time Delivered', cls: 'green' },
+    ];
+
+    document.getElementById('stats-grid').innerHTML = statDefs.map(s => `
+      <div class="card">
+        <div class="label">${s.label}</div>
+        <div class="value ${s.cls}">${stats[s.key] ?? 0}</div>
+      </div>`).join('');
+
+    const qc       = allJobs.filter(j => j.status === 'completed');
+    const assigned = allJobs.filter(j => j.status === 'assigned');
+    const newJobs  = allJobs.filter(j => j.status === 'new');
+
+    const fill = (id, arr) => {
+      document.getElementById(id).innerHTML = arr.length
+        ? arr.map(jobRow).join('')
+        : `<div class="empty-state">None</div>`;
+    };
+
+    fill('qc-list',       qc);
+    fill('assigned-list', assigned);
+    fill('new-list',      newJobs);
+  }
+
+  load();
+</script>
+</body>
+</html>
