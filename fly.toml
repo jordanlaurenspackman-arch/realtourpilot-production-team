@@ -1,0 +1,34 @@
+app = "realtourpilot-production"
+primary_region = "dfw"
+
+[build]
+
+[env]
+  PORT = "3000"
+  DB_PATH = "/data/realtourpilot.db"
+
+[mounts]
+  source = "realtourpilot_data"
+  destination = "/data"
+
+[[services]]
+  protocol = "tcp"
+  internal_port = 3000
+
+  [[services.ports]]
+    port = 80
+    handlers = ["http"]
+
+  [[services.ports]]
+    port = 443
+    handlers = ["tls", "http"]
+
+  [services.concurrency]
+    type = "connections"
+    hard_limit = 25
+    soft_limit = 20
+
+  [[services.http_checks]]
+    interval = "30s"
+    timeout = "5s"
+    path = "/api/stats"
