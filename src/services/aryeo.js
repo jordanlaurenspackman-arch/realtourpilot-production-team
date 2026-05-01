@@ -18,16 +18,22 @@ function verifyWebhookSignature(rawBody, signatureHeader) {
 }
 
 // Parse an Aryeo order webhook payload into our job shape
+function str(val) {
+  if (val === null || val === undefined) return null;
+  if (typeof val === 'object') return JSON.stringify(val);
+  return String(val);
+}
+
 function parseOrderPayload(payload) {
   const order = payload.data || payload;
   return {
-    aryeo_order_id:   order.id || order.order_id || null,
-    aryeo_listing_id: order.listing?.id || null,
-    client_name:      order.customer?.display_name || order.customer_name || null,
-    client_email:     order.customer?.email || order.customer_email || null,
-    service_type:     (order.products || []).map(p => p.title).join(', ') || order.title || null,
-    property_address: order.listing?.address?.deliverable_address || order.address || null,
-    scheduled_at:     order.appointment_at || order.scheduled_at || null,
+    aryeo_order_id:   str(order.id || order.order_id),
+    aryeo_listing_id: str(order.listing?.id),
+    client_name:      str(order.customer?.display_name || order.customer_name),
+    client_email:     str(order.customer?.email || order.customer_email),
+    service_type:     str((order.products || []).map(p => p.title).join(', ') || order.title),
+    property_address: str(order.listing?.address?.deliverable_address || order.address),
+    scheduled_at:     str(order.appointment_at || order.scheduled_at),
   };
 }
 
