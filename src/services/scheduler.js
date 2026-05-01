@@ -30,12 +30,23 @@ async function pollAryeoOrders() {
       const existing = db.prepare(`SELECT id FROM jobs WHERE aryeo_order_id = ?`).get(jobData.aryeo_order_id);
       if (existing) continue;
 
-      console.log('[scheduler] Inserting job:', JSON.stringify(jobData));
+      // Ensure all values are SQLite-safe (null or string only)
+      const safe = (v) => (v === null || v === undefined) ? null : String(v);
+      const v = {
+        aryeo_order_id:   safe(jobData.aryeo_order_id),
+        aryeo_listing_id: safe(jobData.aryeo_listing_id),
+        client_name:      safe(jobData.client_name),
+        client_email:     safe(jobData.client_email),
+        service_type:     safe(jobData.service_type),
+        property_address: safe(jobData.property_address),
+        scheduled_at:     safe(jobData.scheduled_at),
+      };
+      console.log('[scheduler] Inserting job (sanitized):', JSON.stringify(v));
 
       const result = db.prepare(`
         INSERT INTO jobs (aryeo_order_id, aryeo_listing_id, client_name, client_email, service_type, property_address, scheduled_at)
-        VALUES (@aryeo_order_id, @aryeo_listing_id, @client_name, @client_email, @service_type, @property_address, @scheduled_at)
-      `).run(jobData);
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+      `).run(v.aryeo_order_id, v.aryeo_listing_id, v.client_name, v.client_email, v.service_type, v.property_address, v.scheduled_at);
 
       const jobId = result.lastInsertRowid;
       const job = db.prepare(`SELECT * FROM jobs WHERE id = ?`).get(jobId);
