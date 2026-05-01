@@ -24,12 +24,12 @@ async function send(channel, text, blocks) {
   }
 }
 
-async function notifyEditorAssigned(job, editor) {
+async function notifyEditorAssigned(job, editor, dropboxUrl) {
   const channel = editor.slack_user_id
     ? editor.slack_user_id
     : process.env.SLACK_JOBS_CHANNEL || '#jobs';
 
-  await send(channel, `You've been assigned job #${job.id}`, [
+  const blocks = [
     { type: 'header', text: { type: 'plain_text', text: '📷 New Job Assigned' } },
     {
       type: 'section',
@@ -41,11 +41,28 @@ async function notifyEditorAssigned(job, editor) {
         { type: 'mrkdwn', text: `*Shoot Date:*\n${job.scheduled_at ? new Date(job.scheduled_at).toLocaleDateString() : 'TBD'}` },
       ],
     },
-    {
+  ];
+
+  if (dropboxUrl) {
+    blocks.push({
       type: 'section',
-      text: { type: 'mrkdwn', text: `When finished: \`/job-done ${job.id}\`` },
-    },
-  ]);
+      text: { type: 'mrkdwn', text: `📁 *Dropbox Folder:*\n<${dropboxUrl}|Open shoot folder>` },
+    });
+  }
+
+  blocks.push({
+    type: 'section',
+    text: { type: 'mrkdwn', text: `When finished: \`/job-done ${job.id}\`` },
+  });
+
+  // Also post to the production team channel to trigger workflow
+  const jobsChannel = process.env.SLACK_JOBS_CHANNEL || '#production-team';
+  await send(jobsChannel, `New job #${job.id} assigned to ${editor.name} — ${job.property_address || job.client_name || ''}`, blocks);
+
+  // DM the editor directly too
+  if (editor.slack_user_id) {
+    await send(editor.slack_user_id, `You've been assigned job #${job.id}`, blocks);
+  }
 }
 
 async function notifyQcReady(job, editor) {
@@ -122,6 +139,7 @@ async function postMessage(channel, text, blocks) {
 module.exports = {
   initSlack,
   getClient,
+  send,
   notifyEditorAssigned,
   notifyQcReady,
   notifyDelivered,

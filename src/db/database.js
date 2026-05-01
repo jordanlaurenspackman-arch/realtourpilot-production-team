@@ -63,6 +63,14 @@ function migrate(db) {
     );
 
     INSERT OR IGNORE INTO assignment_cursor (id, editor_idx) VALUES (1, 0);
+
+    -- Dropbox file tracking (added in v2)
+    CREATE TABLE IF NOT EXISTS job_dropbox (
+      job_id      INTEGER PRIMARY KEY REFERENCES jobs(id),
+      folder_path TEXT,
+      file_count  INTEGER NOT NULL DEFAULT 0,
+      last_checked_at TEXT
+    );
   `);
 }
 
