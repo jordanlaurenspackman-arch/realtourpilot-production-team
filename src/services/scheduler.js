@@ -17,6 +17,11 @@ async function pollAryeoOrders() {
     const response = await listOrders(1);
     const orders = response.data || [];
 
+    console.log(`[scheduler] Aryeo returned ${orders.length} orders`);
+    if (orders.length > 0) {
+      console.log('[scheduler] Sample order keys:', Object.keys(orders[0]).join(', '));
+    }
+
     let newCount = 0;
     for (const order of orders) {
       const jobData = parseOrderPayload({ data: order });
@@ -24,6 +29,8 @@ async function pollAryeoOrders() {
 
       const existing = db.prepare(`SELECT id FROM jobs WHERE aryeo_order_id = ?`).get(jobData.aryeo_order_id);
       if (existing) continue;
+
+      console.log('[scheduler] Inserting job:', JSON.stringify(jobData));
 
       const result = db.prepare(`
         INSERT INTO jobs (aryeo_order_id, aryeo_listing_id, client_name, client_email, service_type, property_address, scheduled_at)
