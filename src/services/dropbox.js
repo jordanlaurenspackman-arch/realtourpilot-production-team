@@ -41,6 +41,7 @@ async function listFolder(path) {
     return response.data;
   } catch (err) {
     if (err.response?.status === 409) return null; // folder doesn't exist yet
+    console.error('[dropbox] listFolder error:', err.response?.status, JSON.stringify(err.response?.data));
     throw err;
   }
 }
@@ -57,7 +58,7 @@ async function createSharedLink(path) {
   try {
     const response = await axios.post(
       `${BASE_URL}/sharing/create_shared_link_with_settings`,
-      { path, settings: { requested_visibility: 'team_only' } },
+      { path, settings: { requested_visibility: 'public' } },
       {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -71,7 +72,17 @@ async function createSharedLink(path) {
     if (err.response?.data?.error?.['.tag'] === 'shared_link_already_exists') {
       const existing = err.response.data.error.shared_link_already_exists?.metadata?.url;
       if (existing) return existing;
+      // Fetch the existing link
+      try {
+        const listResp = await axios.post(
+          `${BASE_URL}/sharing/list_shared_links`,
+          { path, direct_only: true },
+          { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' } }
+        );
+        return listResp.data.links?.[0]?.url || null;
+      } catch { return null; }
     }
+    console.error('[dropbox] createSharedLink error:', err.response?.status, JSON.stringify(err.response?.data));
     return null;
   }
 }
