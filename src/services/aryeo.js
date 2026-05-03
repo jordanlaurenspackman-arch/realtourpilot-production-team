@@ -17,11 +17,20 @@ function verifyWebhookSignature(rawBody, signatureHeader) {
   );
 }
 
-// Parse an Aryeo order webhook payload into our job shape
 function str(val) {
   if (val === null || val === undefined) return null;
   if (typeof val === 'object') return JSON.stringify(val);
   return String(val);
+}
+
+function parseAddress(addr) {
+  if (!addr) return null;
+  if (typeof addr === 'string') return addr;
+  if (addr.deliverable_address) return addr.deliverable_address;
+  const street = [addr.street_number, addr.street_name].filter(Boolean).join(' ');
+  const cityLine = addr.unparsed_address_part_two ||
+    [addr.city, [addr.state_or_province, addr.postal_code].filter(Boolean).join(' ')].filter(Boolean).join(', ');
+  return [street, cityLine].filter(Boolean).join(', ') || null;
 }
 
 function parseOrderPayload(payload) {
@@ -32,7 +41,7 @@ function parseOrderPayload(payload) {
     client_name:      str(order.customer?.display_name || order.customer_name),
     client_email:     str(order.customer?.email || order.customer_email),
     service_type:     str((order.products || []).map(p => p.title).join(', ') || order.title),
-    property_address: str(order.listing?.address?.deliverable_address || order.address),
+    property_address: parseAddress(order.listing?.address || order.address),
     scheduled_at:     str(order.appointment_at || order.scheduled_at),
   };
 }

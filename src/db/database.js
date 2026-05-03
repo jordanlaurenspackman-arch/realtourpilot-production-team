@@ -72,6 +72,27 @@ function migrate(db) {
       last_checked_at TEXT
     );
   `);
+
+  // Fix existing jobs where property_address was stored as raw JSON
+  db.exec(`
+    UPDATE jobs
+    SET property_address = (
+      COALESCE(
+        NULLIF(TRIM(
+          TRIM(COALESCE(json_extract(property_address, '$.street_number'), '') || ' ' ||
+          COALESCE(json_extract(property_address, '$.street_name'), '')) || ', ' ||
+          COALESCE(
+            json_extract(property_address, '$.unparsed_address_part_two'),
+            TRIM(COALESCE(json_extract(property_address, '$.city'), '') || ', ' ||
+              COALESCE(json_extract(property_address, '$.state_or_province'), '') || ' ' ||
+              COALESCE(json_extract(property_address, '$.postal_code'), ''))
+          )
+        , ''),
+        property_address
+      )
+    )
+    WHERE property_address LIKE '{%';
+  `);
 }
 
 module.exports = { getDb };
