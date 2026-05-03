@@ -80,7 +80,7 @@ async function pollAryeoOrders() {
 }
 
 async function pollDropboxFolders() {
-  if (!process.env.DROPBOX_ACCESS_TOKEN) return;
+  if (!process.env.DROPBOX_ACCESS_TOKEN && !process.env.DROPBOX_REFRESH_TOKEN) return;
 
   const db = getDb();
   const jobs = db.prepare(`
@@ -99,6 +99,11 @@ async function pollDropboxFolders() {
         db.prepare(`
           UPDATE job_dropbox SET file_count = ?, last_checked_at = datetime('now') WHERE job_id = ?
         `).run(totalCount, job.id);
+
+        // Auto-mark as in_progress when shoot files first appear
+        if (job.status === 'assigned') {
+          db.prepare(`UPDATE jobs SET status = 'in_progress', updated_at = datetime('now') WHERE id = ?`).run(job.id);
+        }
 
         const dropboxUrl = await getSharedFolderLink(job.property_address);
         const fileList = newFiles.map(f => `• ${f.name}`).join('\n');

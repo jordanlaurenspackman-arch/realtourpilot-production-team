@@ -94,12 +94,13 @@
       letter-spacing: .05em;
     }
 
-    .pill-new       { background: #e9ecef; color: #495057; }
-    .pill-assigned  { background: #cfe2ff; color: #0a58ca; }
-    .pill-completed { background: #ffe5cc; color: #c56000; }
-    .pill-approved  { background: #d1e7dd; color: #0a6640; }
-    .pill-delivered { background: #d1e7dd; color: #0a6640; }
-    .pill-rejected  { background: #f8d7da; color: #842029; }
+    .pill-new        { background: #e9ecef; color: #495057; }
+    .pill-assigned   { background: #cfe2ff; color: #0a58ca; }
+    .pill-in_progress{ background: #fff3cd; color: #856404; }
+    .pill-completed  { background: #ffe5cc; color: #c56000; }
+    .pill-approved   { background: #d1e7dd; color: #0a6640; }
+    .pill-delivered  { background: #d1e7dd; color: #0a6640; }
+    .pill-rejected   { background: #f8d7da; color: #842029; }
 
     .btn {
       display: inline-flex;
@@ -233,6 +234,10 @@
     return 'status-pill pill-' + (status || 'new');
   }
 
+  function statusLabel(status) {
+    return (status || 'new').replace(/_/g, ' ');
+  }
+
   async function load() {
     const [stats, qcJobs, allJobs] = await Promise.all([
       fetch('/api/stats').then(r => r.json()),
@@ -293,7 +298,7 @@
           </td>
           <td>${j.service_type || '—'}</td>
           <td>${j.editor_name || 'Unassigned'}</td>
-          <td><span class="${pillClass(j.status)}">${j.status}</span></td>
+          <td><span class="${pillClass(j.status)}">${statusLabel(j.status)}</span></td>
           <td>${fmtDate(j.updated_at)}</td>
         </tr>`).join('');
     }
