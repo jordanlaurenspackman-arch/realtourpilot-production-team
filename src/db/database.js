@@ -74,25 +74,23 @@ function migrate(db) {
   `);
 
   // Fix existing jobs where property_address was stored as raw JSON
-  db.exec(`
+  db.prepare(`
     UPDATE jobs
-    SET property_address = (
-      COALESCE(
-        NULLIF(TRIM(
-          TRIM(COALESCE(json_extract(property_address, '$.street_number'), '') || ' ' ||
-          COALESCE(json_extract(property_address, '$.street_name'), '')) || ', ' ||
-          COALESCE(
-            json_extract(property_address, '$.unparsed_address_part_two'),
-            TRIM(COALESCE(json_extract(property_address, '$.city'), '') || ', ' ||
-              COALESCE(json_extract(property_address, '$.state_or_province'), '') || ' ' ||
-              COALESCE(json_extract(property_address, '$.postal_code'), ''))
-          )
-        , ''),
-        property_address
-      )
+    SET property_address = COALESCE(
+      NULLIF(TRIM(
+        TRIM(COALESCE(json_extract(property_address, '$.street_number'), '') || ' ' ||
+        COALESCE(json_extract(property_address, '$.street_name'), '')) || ', ' ||
+        COALESCE(
+          json_extract(property_address, '$.unparsed_address_part_two'),
+          TRIM(COALESCE(json_extract(property_address, '$.city'), '') || ', ' ||
+            COALESCE(json_extract(property_address, '$.state_or_province'), '') || ' ' ||
+            COALESCE(json_extract(property_address, '$.postal_code'), ''))
+        )
+      ), ''),
+      property_address
     )
-    WHERE property_address LIKE '{%';
-  `);
+    WHERE property_address LIKE '{%'
+  `).run();
 }
 
 module.exports = { getDb };
